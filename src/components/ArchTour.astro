@@ -71,11 +71,12 @@ const { folder, frames, title, subtitle } = Astro.props;
     canvas.width = 1920;
     canvas.height = 1080;
 
-    const base = import.meta.env.BASE_URL;
+    const base = import.meta.env.BASE_URL; 
 
-    const currentFrame = (index: number) => (
-      `${base}house-sequence/${folder}/${(index + 1).toString().padStart(3, '0')}.jpg`
-    );
+    const currentFrame = (index: number) => {
+      const cleanBase = base.endsWith('/') ? base : `${base}/`;
+      return `${cleanBase}house-sequence/${folder}/${(index + 1).toString().padStart(3, '0')}.jpg`;
+    };
 
     const images: HTMLImageElement[] = [];
     const renderSequence = { frame: 0 };
