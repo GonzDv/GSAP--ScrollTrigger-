@@ -1,0 +1,148 @@
+---
+// src/components/ArchTour.astro
+
+export interface Props {
+  folder: string;      
+  frames: number;      
+  title: string;       
+  subtitle: string;    
+}
+
+const { folder, frames, title, subtitle } = Astro.props;
+---
+
+<section class="tour-section relative w-full bg-black text-white" data-folder={folder} data-frames={frames}>
+  
+  <div class="loader absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0a0a0a] transition-opacity duration-700 h-screen">
+    <p class="text-xs tracking-[0.3em] uppercase text-gray-400 mb-6">Cargando {subtitle}</p>
+    <div class="w-48 h-px bg-gray-800 overflow-hidden">
+      <div class="progress-bar h-full bg-white w-0 transition-all duration-300"></div>
+    </div>
+    <p class="progress-text text-[10px] mt-4 text-gray-500 tracking-widest">0%</p>
+  </div>
+
+  <div class="canvas-container relative w-full h-screen overflow-hidden bg-black flex items-center justify-center">
+    
+    <canvas class="house-canvas absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000 z-0"></canvas>
+    
+    {/* Gradiente sutil inferior para asegurar contraste con el texto */}
+    <div class="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent z-10 pointer-events-none"></div>
+
+    {/* TÍTULO CAMBIADO DE POSICIÓN: Abajo a la izquierda (bottom-12 left-12 md:left-20) */}
+    <div class="tour-title absolute bottom-12 left-8 md:left-16 z-20 pointer-events-none text-left">
+      <p class="text-xs md:text-sm tracking-[0.4em] uppercase text-gray-400 mb-2">
+        {subtitle}
+      </p>
+      <h1 class="text-3xl md:text-5xl font-light tracking-wide uppercase drop-shadow-lg">
+        {title}
+      </h1>
+    </div>
+
+    {/* Indicador de Scroll original (Centro inferior) */}
+    <div class="absolute bottom-12 right-12 z-20 hidden md:flex flex-col items-center animate-bounce opacity-60 pointer-events-none">
+      <span class="text-[9px] tracking-widest uppercase mb-2">Scroll</span>
+      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+      </svg>
+    </div>
+
+  </div>
+</section>
+
+<script>
+  import { gsap } from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const tours = document.querySelectorAll('.tour-section');
+
+  tours.forEach((tour) => {
+    const folder = tour.getAttribute('data-folder');
+    const frameCount = parseInt(tour.getAttribute('data-frames') || '25', 10);
+    
+    const canvas = tour.querySelector('.house-canvas') as HTMLCanvasElement;
+    const context = canvas.getContext("2d");
+    const loader = tour.querySelector('.loader');
+    const progressBar = tour.querySelector('.progress-bar') as HTMLElement;
+    const progressText = tour.querySelector('.progress-text');
+    const canvasContainer = tour.querySelector('.canvas-container');
+    const titleElement = tour.querySelector('.tour-title'); // Seleccionamos el bloque del título
+
+    canvas.width = 1920;
+    canvas.height = 1080;
+
+    const currentFrame = (index: number) => (
+      `/house-sequence/${folder}/${(index + 1).toString().padStart(3, '0')}.jpg`
+    );
+
+    const images: HTMLImageElement[] = [];
+    const renderSequence = { frame: 0 };
+    let loadedImages = 0;
+
+    function render() {
+      if (!context || images.length === 0) return;
+      let currentFrameIndex = Math.min(Math.round(renderSequence.frame), frameCount - 1);
+      if (images[currentFrameIndex]) {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(images[currentFrameIndex], 0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    for (let i = 0; i < frameCount; i++) {
+      const img = new Image();
+      img.src = currentFrame(i);
+      
+      img.onload = () => {
+        loadedImages++;
+        const progress = Math.round((loadedImages / frameCount) * 100);
+        if (progressBar) progressBar.style.width = `${progress}%`;
+        if (progressText) progressText.innerText = `${progress}%`;
+        if (loadedImages === frameCount) initAnimation();
+      };
+      
+      img.onerror = () => {
+        loadedImages++;
+        if (loadedImages === frameCount) initAnimation();
+      };
+      images.push(img);
+    }
+
+    function initAnimation() {
+      if (loader) {
+        loader.classList.add("opacity-0", "pointer-events-none");
+        setTimeout(() => loader.remove(), 500);
+      }
+      canvas.classList.remove("opacity-0");
+      render();
+
+      // Creamos un Timeline de GSAP para animar las imágenes Y el título al mismo tiempo
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: canvasContainer,
+          pin: true,
+          start: "top top",
+          end: `+=${frameCount * 60}`, 
+          scrub: 0.5,
+        }
+      });
+
+      // 1. Animamos la secuencia de fotos
+      tl.to(renderSequence, {
+        frame: frameCount - 1,
+        ease: "none",
+        onUpdate: render
+      }, 0);
+
+      // 2. Animamos el título para que se desvanezca en los primeros 15% del scroll
+      if (titleElement) {
+        tl.to(titleElement, {
+          opacity: 0,
+          y: -20, // Efecto sutil de desplazamiento hacia arriba al desaparecer
+          ease: "power1.out",
+          duration: 0.15 // Sucede rápidamente al empezar a hacer scroll
+        }, 0);
+      }
+    }
+  });
+</script>
