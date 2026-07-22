@@ -25,10 +25,10 @@ const { folder, frames, title, subtitle } = Astro.props;
     
     <canvas class="house-canvas absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000 z-0"></canvas>
     
-    {/* Gradiente sutil inferior para asegurar contraste con el texto */}
+    {/* Gradiente  inferior para asegurar contraste con el texto */}
     <div class="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent z-10 pointer-events-none"></div>
 
-    {/* TÍTULO CAMBIADO DE POSICIÓN: Abajo a la izquierda (bottom-12 left-12 md:left-20) */}
+    {/* Título y subtítulo del tour */}
     <div class="tour-title absolute bottom-12 left-8 md:left-16 z-20 pointer-events-none text-left">
       <p class="text-xs md:text-sm tracking-[0.4em] uppercase text-gray-400 mb-2">
         {subtitle}
@@ -38,7 +38,6 @@ const { folder, frames, title, subtitle } = Astro.props;
       </h1>
     </div>
 
-    {/* Indicador de Scroll original (Centro inferior) */}
     <div class="absolute bottom-12 right-12 z-20 hidden md:flex flex-col items-center animate-bounce opacity-60 pointer-events-none">
       <span class="text-[9px] tracking-widest uppercase mb-2">Scroll</span>
       <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,13 +66,15 @@ const { folder, frames, title, subtitle } = Astro.props;
     const progressBar = tour.querySelector('.progress-bar') as HTMLElement;
     const progressText = tour.querySelector('.progress-text');
     const canvasContainer = tour.querySelector('.canvas-container');
-    const titleElement = tour.querySelector('.tour-title'); // Seleccionamos el bloque del título
+    const titleElement = tour.querySelector('.tour-title'); 
 
     canvas.width = 1920;
     canvas.height = 1080;
 
+    const base = import.meta.env.BASE_URL;
+
     const currentFrame = (index: number) => (
-      `/house-sequence/${folder}/${(index + 1).toString().padStart(3, '0')}.jpg`
+      `${base}house-sequence/${folder}/${(index + 1).toString().padStart(3, '0')}.jpg`
     );
 
     const images: HTMLImageElement[] = [];
@@ -116,7 +117,7 @@ const { folder, frames, title, subtitle } = Astro.props;
       canvas.classList.remove("opacity-0");
       render();
 
-      // Creamos un Timeline de GSAP para animar las imágenes Y el título al mismo tiempo
+      // Timeline de GSAP para animar las imágenes Y el título al mismo tiempo
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: canvasContainer,
@@ -134,13 +135,13 @@ const { folder, frames, title, subtitle } = Astro.props;
         onUpdate: render
       }, 0);
 
-      // 2. Animamos el título para que se desvanezca en los primeros 15% del scroll
+
       if (titleElement) {
         tl.to(titleElement, {
           opacity: 0,
-          y: -20, // Efecto sutil de desplazamiento hacia arriba al desaparecer
+          y: -20,
           ease: "power1.out",
-          duration: 0.15 // Sucede rápidamente al empezar a hacer scroll
+          duration: 0.15
         }, 0);
       }
     }
